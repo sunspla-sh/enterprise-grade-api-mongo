@@ -9,7 +9,7 @@ beforeAll(async () => {
   server = await createServer();
 });
 
-describe('GET /hello', () => {
+describe('Controller - Greeting - GET /hello', () => {
   
   test('should return 200 & valid response if request param list is empty', done => {
     
@@ -54,7 +54,7 @@ describe('GET /hello', () => {
 
 });
 
-describe('/GET goodbye', () => {
+describe('Controller - Greeting - GET /goodbye', () => {
 
   test('should return 200 & valid response to authorization with fakeToken request', done => {
 

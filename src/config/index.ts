@@ -20,14 +20,22 @@ interface Config {
   morganLogger: boolean,
   morganBodyLogger: boolean,
   exmplDevLogger: boolean,
-  loggerLevel: LogLevel
+  loggerLevel: LogLevel,
+  mongo: {
+    url: string,
+    autoIndex: boolean
+  }
 }
 
 const config: Config = {
   morganLogger: parsedEnv.MORGAN_LOGGER as boolean,
   morganBodyLogger: parsedEnv.MORGAN_BODY_LOGGER as boolean,
   exmplDevLogger: parsedEnv.EXMPL_DEV_LOGGER as boolean,
-  loggerLevel: parsedEnv.LOGGER_LEVEL as LogLevel
+  loggerLevel: parsedEnv.LOGGER_LEVEL as LogLevel,
+  mongo: {
+    url: parsedEnv.MONGO_URL as string,
+    autoIndex: parsedEnv.MONGO_AUTO_INDEX as boolean
+  }
 }
 
 export default config;
