@@ -85,7 +85,7 @@ describe('Controller|Mocking - UserService - createUser failure', () => {
 
   });
 
-  test('should return 500 & valid response if createUser resolves with any error other than account_already_exists error', done => {
+  test('should return 500 & valid response if createUser resolves then rejects with any error other than account_already_exists', done => {
 
     (UserService.createUser as jest.Mock).mockResolvedValue({ error: 'unknown' });
 
@@ -112,6 +112,42 @@ describe('Controller|Mocking - UserService - createUser failure', () => {
 
       });
 
+  });
+
+});
+
+describe('Controller|Mocking - UserService - login failure', () => {
+
+  test('should return 500 & valid response if login rejects with an error', done => {
+
+    (UserService.login as jest.Mock).mockResolvedValue({
+      error: {
+        type: 'unknown'
+      }
+    });
+
+    request(server)
+      .post('/api/v1/login')
+      .send({
+        email: faker.internet.email(),
+        password: faker.internet.password()
+      })
+      .expect(500)
+      .end(function(err, res){
+
+        if(err) return done(err);
+
+        expect(res.body).toMatchObject({
+          error: {
+            type: 'internal_server_error',
+            message: 'Internal server error'
+          }
+        });
+
+        done();
+
+      })
+    
   });
 
 });

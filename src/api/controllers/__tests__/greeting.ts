@@ -1,12 +1,19 @@
 import request from 'supertest';
 import { Express } from 'express';
 
+import db from '@exmpl/utils/db';
 import { createServer } from '@exmpl/utils/server';
+import { createGenericUserAndAuthorize } from '@exmpl/test_helpers/user';
 
 let server: Express;
 
 beforeAll(async () => {
+  await db.open();
   server = await createServer();
+});
+
+afterAll(async () => {
+  await db.close();
 });
 
 describe('Controller - Greeting - GET /hello', () => {
@@ -58,22 +65,32 @@ describe('Controller - Greeting - GET /goodbye', () => {
 
   test('should return 200 & valid response to authorization with fakeToken request', done => {
 
-    request(server)
-      .get('/api/v1/goodbye')
-      .set('Authorization', 'Bearer fakeToken')
-      .expect('Content-Type', /json/)
-      .expect(200)
-      .end((err, res) => {
+    createGenericUserAndAuthorize()
+      .then(genericUser => {
 
-        if(err) return done(err);
+        request(server)
+          .get('/api/v1/goodbye')
+          .set('Authorization', `Bearer ${genericUser.token}`)
+          .expect('Content-Type', /json/)
+          .expect(200)
+          .end((err, res) => {
 
-        expect(res.body).toMatchObject({
-          message: 'Goodbye, fakeUserId!'
-        });
+            if(err) return done(err);
 
-        done();
+            expect(res.body).toMatchObject({
+              message: `Goodbye, ${genericUser.userId}!`
+            });
 
-      });
+            done();
+
+          });
+
+      })
+      .catch(err => {
+        return done(err);
+      })
+
+    
 
   });
 

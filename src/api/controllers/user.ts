@@ -79,3 +79,51 @@ export function createUser(req: express.Request, res: express.Response): void {
     });
 
 }
+
+export function login(req: express.Request, res: express.Response): void {
+
+  const { email, password } = req.body;
+
+  UserService.login(email, password)
+    .then(loginUserResponse => {
+
+      if((loginUserResponse as any).error){
+
+        if((loginUserResponse as ErrorResponse).error.type === 'invalid_credentials'){
+
+          writeJsonResponse(res, 401, loginUserResponse);
+
+        } else {
+
+          throw new Error(`unsupported ${loginUserResponse}`);
+
+        }
+
+      } else {
+
+        const { userId, token, expireAt } = loginUserResponse as { token: string, userId: string, expireAt: Date };
+
+        writeJsonResponse(res, 200, {
+          userId,
+          token
+        }, {
+          'X-Expires-After': expireAt.toISOString()
+        });
+
+      }
+      
+    })
+    .catch((err: any) => {
+
+      logger.error(`login: ${err}`);
+
+      writeJsonResponse(res, 500, {
+        error: {
+          type: 'internal_server_error',
+          message: 'Internal server error'
+        }
+      });
+
+    });
+
+}

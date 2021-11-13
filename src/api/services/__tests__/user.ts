@@ -2,6 +2,7 @@ import faker from 'faker';
 
 import UserService from '@exmpl/api/services/user';
 import db from '@exmpl/utils/db';
+import { createGenericUser, createGenericUserAndAuthorize } from '@exmpl/test_helpers/user';
 
 beforeAll(async () => {
   await db.open();
@@ -13,17 +14,12 @@ afterAll(async () => {
 
 describe('Service - User - auth', () => {
 
-  test('should resolve with true and valid userId for hardcoded token', async () => {
+  test('should resolve with true and valid userId for token', async () => {
 
-    const response = await UserService.auth('fakeToken');
+    const genericUser = await createGenericUserAndAuthorize();
 
-    /**
-     * we use the toEqual function to check for object
-     * key-value equality recursively as the toBe function
-     * checks strict Object equality with Object.is
-     */
-    expect(response).toEqual({
-      userId: 'fakeUserId'
+    await expect(UserService.auth(genericUser.token)).resolves.toEqual({
+      userId: genericUser.userId
     });
 
   });
@@ -38,6 +34,26 @@ describe('Service - User - auth', () => {
         message: 'Authentication failed'
       }
     });
+
+  });
+
+  test('performance test of auth function', async () => {
+
+    const genericUser = await createGenericUserAndAuthorize();
+
+    const now = new Date().getTime();
+
+    let i = 0;
+
+    do {
+      
+      i += 1;
+
+      await UserService.auth(`Bearer ${genericUser.token}`);
+
+    } while (new Date().getTime() - now < 1000);
+
+    console.log(`UserService.auth performance test results: ${i} verifications per second`);
 
   });
 
@@ -71,4 +87,39 @@ describe('Service - User - createUser', () => {
     await expect(UserService.createUser(email, password, name)).rejects.toThrowError(/validation failed/)
 
   });
+});
+
+describe('Service - User - login', () => {
+
+  test('should return jwt, userId, expireAt to a valid login/password', async () => {
+
+    const genericUser = await createGenericUser();
+    
+    await expect(UserService.login(genericUser.email, genericUser.password)).resolves.toEqual({
+      userId: genericUser.userId,
+      token: expect.stringMatching(/^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$/), //jwt regex pattern
+      expireAt: expect.any(Date)
+    });
+
+  });
+
+  test('should resolve with an error if email does not exist', async () => {
+    await expect(UserService.login(faker.internet.email(), faker.internet.password())).resolves.toEqual({
+      error: {
+        type: 'invalid_credentials',
+        message: 'Invalid email/password'
+      }
+    });
+  });
+
+  test('should resolve with an error if email exists but password is incorrect', async () => {
+    const genericUser = await createGenericUser();
+    await expect(UserService.login(genericUser.email, faker.internet.password())).resolves.toEqual({
+      error: {
+        type: 'invalid_credentials',
+        message: 'Invalid email/password'
+      }
+    });
+  });
+
 });
