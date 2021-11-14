@@ -1,8 +1,9 @@
 import jwt, { SignOptions, VerifyErrors, VerifyOptions, } from 'jsonwebtoken';
 
-import User from '@exmpl/api/models/user';
+import User, { IUser } from '@exmpl/api/models/user';
 import config from '@exmpl/config';
 import logger from '@exmpl/utils/logger';
+import cacheLocal from '@exmpl/utils/cache_local';
 
 export type ErrorResponse = { error: { type: string, message: string } }
 export type AuthResponse = ErrorResponse | { userId: string }
@@ -55,24 +56,33 @@ async function login(email: string, password: string): Promise<LoginUserResponse
 
   try{
 
-    const user = await User.findOne({ email });
+    let user: IUser | undefined | null = cacheLocal.get<IUser>(email);
 
     if(!user){
 
-      /**
-       * Here we return an error that will be automatically
-       * wrapped as a resolved promise by javascript because
-       * we returned the error object from an async function.
-       * We don't force a promise reject because it was a correctly
-       * formatted input despite containing incorrect email/password.
-       * Hence it is user error and not an internal error.
-       */
-      return {
-        error: {
-          type: 'invalid_credentials',
-          message: 'Invalid email/password'
-        }
-      };
+      user = await User.findOne({ email });
+
+      if(!user){
+
+        /**
+         * Here we return an error that will be automatically
+         * wrapped as a resolved promise by javascript because
+         * we returned the error object from an async function.
+         * We don't force a promise reject because it was a correctly
+         * formatted input despite containing incorrect email/password.
+         * Hence it is user error and not an internal error.
+         */
+        return {
+          error: {
+            type: 'invalid_credentials',
+            message: 'Invalid email/password'
+          }
+        };
+
+      }
+
+      cacheLocal.set(user._id.toString(), user);
+      cacheLocal.set(email, user);
 
     }
 
@@ -159,19 +169,6 @@ function auth(bearerToken: string): Promise<AuthResponse> {
       })
 
     });
-
-    // if(token === 'fakeToken') {
-    //   resolve({
-    //     userId: 'fakeUserId'
-    //   });
-    // }
-
-    // resolve({
-    //   error: {
-    //     type: 'unauthorized',
-    //     message: 'Authentication failed'
-    //   }
-    // });
 
   });
 

@@ -78,7 +78,7 @@ describe('Controller - Greeting - GET /goodbye', () => {
             if(err) return done(err);
 
             expect(res.body).toMatchObject({
-              message: `Goodbye, ${genericUser.userId}!`
+              message: `Goodbye, ${genericUser.name}!`
             });
 
             done();
@@ -139,6 +139,47 @@ describe('Controller - Greeting - GET /goodbye', () => {
         done();
 
       });
+
+  });
+
+  async function sendGoodbye(token: string) {
+
+    return new Promise<void>(function(resolve, reject) {
+
+      request(server)
+        .get('/api/v1/goodbye')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(200)
+        .end(function(err, res){
+          
+          if(err) return reject(err);
+
+          resolve()
+
+      });
+    
+    });
+
+  }
+
+  test('performance test of goodbye', async () => {
+
+    const genericUser = await createGenericUserAndAuthorize();
+
+    const now = new Date().getTime();
+
+    let i = 0;
+
+    do {
+
+      i += 1;
+
+      await sendGoodbye(genericUser.token);
+
+    } while (new Date().getTime() - now < 1000);
+
+    console.log(`Goodbye route performance test results: ${i} requests processed per second`);
 
   });
 

@@ -25,7 +25,8 @@ interface Config {
   mongo: {
     url: string,
     autoIndex: boolean
-  }
+  },
+  localCacheTtl: number
 }
 
 const config: Config = {
@@ -37,7 +38,8 @@ const config: Config = {
   mongo: {
     url: parsedEnv.MONGO_URL as string,
     autoIndex: parsedEnv.MONGO_AUTO_INDEX as boolean
-  }
+  },
+  localCacheTtl: parsedEnv.LOCAL_CACHE_TTL as number
 }
 
 export default config;
