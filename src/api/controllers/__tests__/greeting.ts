@@ -4,15 +4,18 @@ import { Express } from 'express';
 import db from '@exmpl/utils/db';
 import { createServer } from '@exmpl/utils/server';
 import { createGenericUserAndAuthorize } from '@exmpl/test_helpers/user';
+import cacheExternal from '@exmpl/utils/cache_external';
 
 let server: Express;
 
 beforeAll(async () => {
+  await cacheExternal.open();
   await db.open();
   server = await createServer();
 });
 
 afterAll(async () => {
+  await cacheExternal.close();
   await db.close();
 });
 

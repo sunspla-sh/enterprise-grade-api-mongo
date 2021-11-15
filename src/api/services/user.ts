@@ -4,6 +4,7 @@ import User, { IUser } from '@exmpl/api/models/user';
 import config from '@exmpl/config';
 import logger from '@exmpl/utils/logger';
 import cacheLocal from '@exmpl/utils/cache_local';
+import cacheExternal from '@exmpl/utils/cache_external';
 
 export type ErrorResponse = { error: { type: string, message: string } }
 export type AuthResponse = ErrorResponse | { userId: string }
@@ -35,10 +36,25 @@ function createAuthToken(userId: string): Promise<{ token: string, expireAt: Dat
         
         expireAt.setSeconds(expireAt.getSeconds() + twoWeeksInSeconds);
 
-        resolve({
-          token: encoded,
-          expireAt
-        });
+        cacheExternal.setProp(encoded, userId, twoWeeksInSeconds)
+          .then(() => {
+
+            resolve({
+              token: encoded,
+              expireAt
+            });
+
+          })
+          .catch(err => {
+
+            logger.warn(`createAuthToken.setProp: ${err}`);
+
+            resolve({
+              token: encoded,
+              expireAt
+            });
+
+          });
 
       } else {
 
@@ -137,36 +153,60 @@ async function login(email: string, password: string): Promise<LoginUserResponse
   }
 }
 
-function auth(bearerToken: string): Promise<AuthResponse> {
+async function auth(bearerToken: string): Promise<AuthResponse> {
+
+  const token = bearerToken.replace('Bearer ', '');
+
+  try{
+
+    const userId = await cacheExternal.getProp(token);
+
+    if(userId) return { userId };
+
+  } catch (err) {
+    
+    logger.warn(`auth.cacheExternal.addToken: ${err}`)
+
+  }
   
   return new Promise(function(resolve, reject) {
 
-    const token = bearerToken.replace('Bearer ', '');
-
     jwt.verify(token, jwtHmacSecret, verifyOptions, (err: VerifyErrors | null, decoded: object | undefined) => {
 
-      if(err === null && decoded !== undefined){
+      if(err === null && decoded !== undefined && (decoded as any).userId !== undefined){
 
-        const d = decoded as { userId?: string, exp: number };
+        const d = decoded as { userId: string, exp: number };
 
-        if(d.userId) {
-          
-          resolve({
-            userId: d.userId
+        const expireAfter = d.exp - Math.round((new Date()).valueOf() / 1000);
+
+        cacheExternal.setProp(token, d.userId, expireAfter)
+          .then(() => {
+
+            resolve({
+              userId: d.userId
+            });
+
+          })
+          .catch(err => {
+
+            resolve({
+              userId: d.userId
+            });
+
+            logger.warn(`auth.cacheExternal.addToken: ${err}`);
+
           });
 
-          return;
+      } else {
 
-        }
+        resolve({
+          error: {
+            type: 'unauthorized',
+            message: 'Authentication failed'
+          }
+        });
 
       }
-
-      resolve({
-        error: {
-          type: 'unauthorized',
-          message: 'Authentication failed'
-        }
-      })
 
     });
 

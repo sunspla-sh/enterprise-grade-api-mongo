@@ -26,7 +26,8 @@ interface Config {
     url: string,
     autoIndex: boolean
   },
-  localCacheTtl: number
+  localCacheTtl: number,
+  redisUrl: string
 }
 
 const config: Config = {
@@ -39,7 +40,8 @@ const config: Config = {
     url: parsedEnv.MONGO_URL as string,
     autoIndex: parsedEnv.MONGO_AUTO_INDEX as boolean
   },
-  localCacheTtl: parsedEnv.LOCAL_CACHE_TTL as number
+  localCacheTtl: parsedEnv.LOCAL_CACHE_TTL as number,
+  redisUrl: parsedEnv.REDIS_URL as string
 }
 
 export default config;

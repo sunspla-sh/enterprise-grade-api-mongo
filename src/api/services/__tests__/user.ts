@@ -3,12 +3,15 @@ import faker from 'faker';
 import UserService from '@exmpl/api/services/user';
 import db from '@exmpl/utils/db';
 import { createGenericUser, createGenericUserAndAuthorize } from '@exmpl/test_helpers/user';
+import cacheExternal from '@exmpl/utils/cache_external';
 
 beforeAll(async () => {
+  await cacheExternal.open()
   await db.open();
 });
 
 afterAll(async () => {
+  await cacheExternal.close()
   await db.close();
 })
 
